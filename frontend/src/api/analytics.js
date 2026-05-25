@@ -1,0 +1,11 @@
+import client from './client';
+export const getDashboard        = ()       => client.get('/analytics/dashboard');
+export const getMonthlyRevenue   = (year)   => client.get('/analytics/monthly-revenue', { params: { year } });
+export const getTopProducts      = (period) => client.get('/analytics/top-products', { params: { period } });
+export const getRevenueByPeriod  = (group_by) => client.get('/analytics/revenue-by-period', { params: { group_by } });
+export const getSalesReport        = (params) => client.get('/analytics/sales-report',        { params });
+export const getSalesByCategory    = (params) => client.get('/analytics/sales-by-category',   { params });
+export const getProductPerformance = (params) => client.get('/analytics/product-performance', { params });
+export const getSalesTrend         = (params) => client.get('/analytics/sales-trend',         { params });
+export const getSalesByPayment     = (params) => client.get('/analytics/sales-by-payment',    { params });
+export const getSalesByBrand       = (params) => client.get('/analytics/sales-by-brand',      { params });

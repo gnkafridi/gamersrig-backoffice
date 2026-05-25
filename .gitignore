@@ -1,0 +1,13 @@
+# Database backups (may contain real customer data)
+/backup/
+
+# Local editor / tooling settings
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
