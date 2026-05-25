@@ -147,7 +147,7 @@ npm run lint                   # eslint
 ## Project layout
 
 ```
-headoffice/
+backoffice/
 ├── backend/        Laravel API (controllers, models, migrations, seeders)
 │   ├── app/Http/Controllers/Api
 │   ├── database/migrations

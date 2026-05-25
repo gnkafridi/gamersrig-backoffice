@@ -26,7 +26,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('headoffice')->plainTextToken;
+        $token = $user->createToken('backoffice')->plainTextToken;
 
         AuditService::log('login', 'User logged in');
 
