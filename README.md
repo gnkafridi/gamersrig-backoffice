@@ -35,7 +35,7 @@ cd gamersrig-backoffice
 Start MySQL, then create an empty database (default name expected by `.env`):
 
 ```sql
-CREATE DATABASE gamersrig_headoffice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE gamersrig_backoffice CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 ## 3. Backend (Laravel API)
@@ -59,7 +59,7 @@ APP_URL=http://localhost:8000
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=gamersrig_headoffice
+DB_DATABASE=gamersrig_backoffice
 DB_USERNAME=root
 DB_PASSWORD=
 ```
