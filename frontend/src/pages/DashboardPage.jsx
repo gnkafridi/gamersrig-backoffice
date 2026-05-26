@@ -82,7 +82,9 @@ export default function DashboardPage() {
       : null
     : null;
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const FOUNDING_YEAR = 2026;
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - FOUNDING_YEAR + 1 }, (_, i) => currentYear - i);
 
   return (
     <Box>
