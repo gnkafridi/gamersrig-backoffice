@@ -19,12 +19,25 @@ const fmt = (n) => 'PKR ' + Number(n || 0).toLocaleString('en-PK', { maximumFrac
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <Box sx={{ bgcolor: '#2a2a2a', border: '1px solid #3a3a3a', borderRadius: 1, p: 1.5 }}>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
+    <Box sx={{
+      bgcolor: 'background.paper',
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: 2,
+      p: 1.5,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+      minWidth: 160,
+    }}>
+      <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', mb: 0.75, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        {label}
+      </Typography>
       {payload.map((p) => (
-        <Box key={p.name} sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: p.color }} />
-          <Typography variant="caption">{p.name}: {fmt(p.value)}</Typography>
+        <Box key={p.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mt: 0.4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: p.color, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{p.name}</Typography>
+          </Box>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'text.primary' }}>{fmt(p.value)}</Typography>
         </Box>
       ))}
     </Box>
