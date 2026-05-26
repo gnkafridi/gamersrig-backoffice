@@ -1,11 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextStyle from '@tiptap/extension-text-style';
-import Color from '@tiptap/extension-color';
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
 import {
   Box, Dialog, DialogContent, IconButton,
   Typography, Chip, Fade, CircularProgress, Divider, Tooltip,
@@ -17,6 +10,7 @@ import {
   FormatBold, FormatItalic, FormatUnderlined, FormatStrikethrough,
   FormatListBulleted, FormatListNumbered, FormatQuote,
   FormatClear, Undo, Redo,
+  LooksOne, LooksTwo, Looks3,
 } from '@mui/icons-material';
 import { getMemo, updateMemo } from '../api/memo';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,16 +18,15 @@ import { useAuth } from '../contexts/AuthContext';
 const AUTOSAVE_DELAY = 800;
 const LS_KEY = (userId) => `memo_draft_${userId}`;
 
-/* ── Toolbar ────────────────────────────────────────────────── */
-function ToolbarBtn({ title, onClick, active, children }) {
+/* ── Toolbar button ─────────────────────────────────────────── */
+function TB({ title, onClick, active, children }) {
   return (
     <Tooltip title={title} placement="top">
       <IconButton
         size="small"
         onMouseDown={(e) => { e.preventDefault(); onClick(); }}
         sx={{
-          borderRadius: 1,
-          p: '4px',
+          borderRadius: 1, p: '4px',
           color: active ? 'primary.main' : 'text.secondary',
           bgcolor: active ? 'action.selected' : 'transparent',
           '&:hover': { bgcolor: 'action.hover' },
@@ -45,82 +38,73 @@ function ToolbarBtn({ title, onClick, active, children }) {
   );
 }
 
-function EditorToolbar({ editor }) {
-  if (!editor) return null;
-  const iconSx = { fontSize: 18 };
+/* ── Toolbar ────────────────────────────────────────────────── */
+function Toolbar({ editorRef, onFormat }) {
+  const [activeFormats, setActiveFormats] = useState({});
+
+  // Update active states when selection changes
+  const updateActive = useCallback(() => {
+    setActiveFormats({
+      bold:        document.queryCommandState('bold'),
+      italic:      document.queryCommandState('italic'),
+      underline:   document.queryCommandState('underline'),
+      strikeThrough: document.queryCommandState('strikeThrough'),
+      insertUnorderedList: document.queryCommandState('insertUnorderedList'),
+      insertOrderedList:   document.queryCommandState('insertOrderedList'),
+    });
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('selectionchange', updateActive);
+    return () => document.removeEventListener('selectionchange', updateActive);
+  }, [updateActive]);
+
+  const exec = (cmd, value) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, value ?? null);
+    onFormat();
+    updateActive();
+  };
+
+  const sz = { fontSize: 18 };
 
   return (
     <Box sx={{
       display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.25,
-      px: 1.5, py: 0.75,
+      px: 1.5, py: 0.75, flexShrink: 0,
       borderBottom: '1px solid', borderColor: 'divider',
       bgcolor: 'background.default',
-      flexShrink: 0,
     }}>
-      {/* History */}
-      <ToolbarBtn title="Undo" onClick={() => editor.chain().focus().undo().run()}>
-        <Undo sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Redo" onClick={() => editor.chain().focus().redo().run()}>
-        <Redo sx={iconSx} />
-      </ToolbarBtn>
+      <TB title="Undo" onClick={() => exec('undo')}><Undo sx={sz} /></TB>
+      <TB title="Redo" onClick={() => exec('redo')}><Redo sx={sz} /></TB>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
-      {/* Headings */}
-      {[1, 2, 3].map(level => (
-        <ToolbarBtn
-          key={level}
-          title={`Heading ${level}`}
-          active={editor.isActive('heading', { level })}
-          onClick={() => editor.chain().focus().toggleHeading({ level }).run()}
-        >
-          <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1, px: 0.25 }}>H{level}</Typography>
-        </ToolbarBtn>
-      ))}
-      <ToolbarBtn
-        title="Paragraph"
-        active={editor.isActive('paragraph')}
-        onClick={() => editor.chain().focus().setParagraph().run()}
-      >
-        <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1, px: 0.25 }}>P</Typography>
-      </ToolbarBtn>
+      <TB title="Heading 1" onClick={() => exec('formatBlock', '<h1>')}><LooksOne sx={sz} /></TB>
+      <TB title="Heading 2" onClick={() => exec('formatBlock', '<h2>')}><LooksTwo sx={sz} /></TB>
+      <TB title="Heading 3" onClick={() => exec('formatBlock', '<h3>')}><Looks3 sx={sz} /></TB>
+      <TB title="Paragraph" onClick={() => exec('formatBlock', '<p>')}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, px: 0.25, lineHeight: 1 }}>P</Typography>
+      </TB>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
-      {/* Inline */}
-      <ToolbarBtn title="Bold" active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
-        <FormatBold sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Italic" active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
-        <FormatItalic sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Underline" active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()}>
-        <FormatUnderlined sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Strikethrough" active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()}>
-        <FormatStrikethrough sx={iconSx} />
-      </ToolbarBtn>
+      <TB title="Bold"          active={activeFormats.bold}          onClick={() => exec('bold')}><FormatBold sx={sz} /></TB>
+      <TB title="Italic"        active={activeFormats.italic}        onClick={() => exec('italic')}><FormatItalic sx={sz} /></TB>
+      <TB title="Underline"     active={activeFormats.underline}     onClick={() => exec('underline')}><FormatUnderlined sx={sz} /></TB>
+      <TB title="Strikethrough" active={activeFormats.strikeThrough} onClick={() => exec('strikeThrough')}><FormatStrikethrough sx={sz} /></TB>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
-      {/* Lists */}
-      <ToolbarBtn title="Bullet List" active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()}>
-        <FormatListBulleted sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Numbered List" active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
-        <FormatListNumbered sx={iconSx} />
-      </ToolbarBtn>
-      <ToolbarBtn title="Blockquote" active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
-        <FormatQuote sx={iconSx} />
-      </ToolbarBtn>
+      <TB title="Bullet List"   active={activeFormats.insertUnorderedList} onClick={() => exec('insertUnorderedList')}><FormatListBulleted sx={sz} /></TB>
+      <TB title="Numbered List" active={activeFormats.insertOrderedList}   onClick={() => exec('insertOrderedList')}><FormatListNumbered sx={sz} /></TB>
+      <TB title="Blockquote"    onClick={() => exec('formatBlock', '<blockquote>')}><FormatQuote sx={sz} /></TB>
 
       <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
 
-      {/* Clear */}
-      <ToolbarBtn title="Clear Formatting" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}>
-        <FormatClear sx={iconSx} />
-      </ToolbarBtn>
+      <TB title="Clear Formatting" onClick={() => { exec('removeFormat'); exec('formatBlock', '<p>'); }}>
+        <FormatClear sx={sz} />
+      </TB>
     </Box>
   );
 }
@@ -130,15 +114,19 @@ export default function MemoDialog({ open, onClose }) {
   const { user } = useAuth();
   const [saveStatus, setSaveStatus] = useState('idle');
   const [isLoading, setIsLoading]   = useState(false);
+  const [ready, setReady]           = useState(false);
 
-  const timerRef       = useRef(null);
-  const isDirtyRef     = useRef(false);
-  const initialisedRef = useRef(false);
-  const latestContent  = useRef('');
+  const editorRef  = useRef(null);
+  const timerRef   = useRef(null);
+  const isDirtyRef = useRef(false);
+  const lsKey      = user ? LS_KEY(user.id) : null;
 
-  const lsKey = user ? LS_KEY(user.id) : null;
+  const getHTML = () => editorRef.current?.innerHTML ?? '';
+  const setHTML = (html) => {
+    if (editorRef.current) editorRef.current.innerHTML = html || '';
+  };
 
-  /* ── Save to API ── */
+  /* ── Save ── */
   const save = useCallback((html) => {
     setSaveStatus('saving');
     updateMemo(html)
@@ -151,70 +139,51 @@ export default function MemoDialog({ open, onClose }) {
       .catch(() => setSaveStatus('idle'));
   }, [lsKey]);
 
-  /* ── TipTap editor ── */
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextStyle,
-      Color,
-      Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: 'Write your notes here…' }),
-    ],
-    content: '',
-    onUpdate: ({ editor: ed }) => {
-      const html = ed.getHTML();
-      latestContent.current = html;
-      isDirtyRef.current = true;
-      setSaveStatus('idle');
-      if (lsKey) localStorage.setItem(lsKey, html);
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => save(html), AUTOSAVE_DELAY);
-    },
-  });
-
-  /* ── On open: load draft from localStorage, then fetch API ── */
+  /* ── Load on open ── */
   useEffect(() => {
-    if (!open || !editor) return;
+    if (!open) { setReady(false); return; }
 
     isDirtyRef.current = false;
     setSaveStatus('idle');
-    initialisedRef.current = false;
 
-    // 1) Instant draft from localStorage
-    if (lsKey) {
-      const draft = localStorage.getItem(lsKey);
-      if (draft !== null) {
-        editor.commands.setContent(draft, false);
-        latestContent.current = draft;
-        initialisedRef.current = true;
-      }
+    // Instant: localStorage
+    const draft = lsKey ? localStorage.getItem(lsKey) : null;
+    if (draft !== null) {
+      setHTML(draft);
+      setReady(true);
     }
 
-    // 2) Fetch from API — override only if no unsaved edits
+    // API fetch
     setIsLoading(true);
     getMemo()
       .then((r) => {
-        const serverContent = r.data?.data?.content ?? '';
+        const server = r.data?.data?.content ?? '';
         if (!isDirtyRef.current) {
-          editor.commands.setContent(serverContent, false);
-          latestContent.current = serverContent;
-          if (lsKey) localStorage.setItem(lsKey, serverContent);
+          setHTML(server);
+          if (lsKey) localStorage.setItem(lsKey, server);
         }
-        initialisedRef.current = true;
+        setReady(true);
       })
       .finally(() => setIsLoading(false));
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [open, editor]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── On close: flush unsaved changes ── */
+  /* ── Handle input ── */
+  const handleInput = useCallback(() => {
+    const html = getHTML();
+    isDirtyRef.current = true;
+    setSaveStatus('idle');
+    if (lsKey) localStorage.setItem(lsKey, html);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => save(html), AUTOSAVE_DELAY);
+  }, [save, lsKey]);
+
+  /* ── Close ── */
   const handleClose = useCallback(() => {
     if (isDirtyRef.current) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      save(latestContent.current);
+      save(getHTML());
     }
     onClose();
   }, [save, onClose]);
@@ -226,19 +195,12 @@ export default function MemoDialog({ open, onClose }) {
       maxWidth="md"
       fullWidth
       PaperProps={{
-        sx: {
-          borderRadius: 3,
-          overflow: 'hidden',
-          height: '72vh',
-          display: 'flex',
-          flexDirection: 'column',
-        },
+        sx: { borderRadius: 3, overflow: 'hidden', height: '72vh', display: 'flex', flexDirection: 'column' },
       }}
     >
-      {/* ── Header ── */}
+      {/* Header */}
       <Box sx={{
-        display: 'flex', alignItems: 'center',
-        px: 2.5, py: 1.5, flexShrink: 0,
+        display: 'flex', alignItems: 'center', px: 2.5, py: 1.5, flexShrink: 0,
         background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
         color: '#fff',
       }}>
@@ -267,54 +229,43 @@ export default function MemoDialog({ open, onClose }) {
         </IconButton>
       </Box>
 
-      {/* ── Toolbar ── */}
-      <EditorToolbar editor={editor} />
+      {/* Toolbar */}
+      <Toolbar editorRef={editorRef} onFormat={handleInput} />
 
-      {/* ── Editor area ── */}
+      {/* Editor */}
       <DialogContent sx={{ p: 0, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {isLoading && !initialisedRef.current ? (
+        {isLoading && !ready ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
             <CircularProgress size={28} />
           </Box>
         ) : (
           <Box
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            onInput={handleInput}
             sx={{
-              flex: 1, overflow: 'auto', p: 2.5,
-              '& .tiptap': {
-                outline: 'none',
-                minHeight: '100%',
-                fontSize: 14,
-                lineHeight: 1.75,
-                fontFamily: 'inherit',
-                color: 'text.primary',
-              },
-              '& .tiptap p.is-editor-empty:first-child::before': {
-                content: 'attr(data-placeholder)',
+              flex: 1, overflow: 'auto', p: 2.5, outline: 'none',
+              fontSize: 14, lineHeight: 1.75, fontFamily: 'inherit',
+              color: 'text.primary',
+              '&:empty:before': {
+                content: '"Write your notes here…"',
                 color: 'text.disabled',
                 pointerEvents: 'none',
-                float: 'left',
-                height: 0,
               },
-              '& .tiptap h1': { fontSize: '1.6rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
-              '& .tiptap h2': { fontSize: '1.3rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
-              '& .tiptap h3': { fontSize: '1.1rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
-              '& .tiptap ul': { pl: 3, mb: 1 },
-              '& .tiptap ol': { pl: 3, mb: 1 },
-              '& .tiptap li': { mb: 0.25 },
-              '& .tiptap blockquote': {
-                borderLeft: '3px solid', borderColor: 'divider',
-                pl: 2, ml: 0, color: 'text.secondary', fontStyle: 'italic',
+              '& h1': { fontSize: '1.5rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
+              '& h2': { fontSize: '1.25rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
+              '& h3': { fontSize: '1.1rem', fontWeight: 700, mt: 1.5, mb: 0.5 },
+              '& ul': { pl: '1.5rem', mb: 1 },
+              '& ol': { pl: '1.5rem', mb: 1 },
+              '& li': { mb: '2px' },
+              '& blockquote': {
+                borderLeft: '3px solid #4ade80', pl: '12px', ml: 0,
+                color: 'text.secondary', fontStyle: 'italic', my: 1,
               },
-              '& .tiptap strong': { fontWeight: 700 },
-              '& .tiptap code': {
-                bgcolor: 'action.hover', px: 0.5, borderRadius: 0.5,
-                fontFamily: 'monospace', fontSize: 13,
-              },
-              '& .tiptap hr': { border: 'none', borderTop: '1px solid', borderColor: 'divider', my: 2 },
+              '& b, & strong': { fontWeight: 700 },
             }}
-          >
-            <EditorContent editor={editor} />
-          </Box>
+          />
         )}
       </DialogContent>
     </Dialog>
