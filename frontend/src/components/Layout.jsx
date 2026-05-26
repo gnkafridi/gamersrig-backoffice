@@ -33,6 +33,7 @@ import {
   LockResetOutlined as ChangePasswordIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
+  StickyNote2Outlined as StickyNote2OutlinedIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   ViewListOutlined as AllProductsIcon,
@@ -42,6 +43,7 @@ import {
 } from '@mui/icons-material';
 import client from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
+import MemoDialog from './MemoDialog';
 
 const DRAWER_WIDTH = 228;
 const COLLAPSED_WIDTH = 64;
@@ -134,6 +136,8 @@ export default function Layout() {
   const SIDEBAR_BG = themeMode === 'dark' ? '#09090b' : '#0f172a';
 
   // Fullscreen
+  const [memoOpen, setMemoOpen] = useState(false);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   useEffect(() => {
     const handler = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -460,8 +464,13 @@ export default function Layout() {
               )}
             </Box>
 
-            {/* Right — fullscreen + avatar */}
+            {/* Right — memo + fullscreen + avatar */}
             <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Tooltip title="My Memo">
+              <IconButton size="small" onClick={() => setMemoOpen(true)} sx={{ color: 'text.secondary' }}>
+                <StickyNote2OutlinedIcon sx={{ fontSize: 20 }} />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
               <IconButton size="small" onClick={toggleFullscreen} sx={{ color: 'text.secondary' }}>
                 {isFullscreen ? <FullscreenExitIcon sx={{ fontSize: 20 }} /> : <FullscreenIcon sx={{ fontSize: 20 }} />}
@@ -570,6 +579,8 @@ export default function Layout() {
           <Outlet />
         </Box>
       </Box>
+
+      <MemoDialog open={memoOpen} onClose={() => setMemoOpen(false)} />
     </Box>
   );
 }

@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\VendorProductController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\MemoController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -117,6 +118,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Global Search ──────────────────────────────────────────
     Route::get('search', [SearchController::class, 'search']);
+
+    // ── My Memo ────────────────────────────────────────────────
+    Route::get('memo', [MemoController::class, 'show']);
+    Route::put('memo', [MemoController::class, 'update']);
 
     // ── User Management + Audit Log ────────────────────────────
     Route::apiResource('users', UserController::class);
