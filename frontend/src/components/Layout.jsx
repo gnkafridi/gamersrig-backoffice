@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   Box, Drawer, AppBar, Toolbar, List, ListItem, ListItemButton,
@@ -43,7 +43,7 @@ import {
 } from '@mui/icons-material';
 import client from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-const MemoDialog = lazy(() => import('./MemoDialog'));
+import MemoDialog from './MemoDialog';
 
 const DRAWER_WIDTH = 228;
 const COLLAPSED_WIDTH = 64;
@@ -580,9 +580,7 @@ export default function Layout() {
         </Box>
       </Box>
 
-      <Suspense fallback={null}>
-        {memoOpen && <MemoDialog open={memoOpen} onClose={() => setMemoOpen(false)} />}
-      </Suspense>
+      <MemoDialog open={memoOpen} onClose={() => setMemoOpen(false)} />
     </Box>
   );
 }

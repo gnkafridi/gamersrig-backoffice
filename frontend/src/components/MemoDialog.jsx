@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import ReactQuill from 'react-quill-new';
-import 'react-quill-new/dist/quill.snow.css';
 import {
   Box, Dialog, DialogContent, IconButton,
-  Typography, Chip, Fade, CircularProgress,
+  Typography, Chip, Fade, CircularProgress, TextField,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -16,29 +14,11 @@ import { useAuth } from '../contexts/AuthContext';
 const AUTOSAVE_DELAY = 800;
 const LS_KEY = (userId) => `memo_draft_${userId}`;
 
-const quillModules = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ color: [] }, { background: [] }],
-    [{ list: 'ordered' }, { list: 'bullet' }],
-    [{ indent: '-1' }, { indent: '+1' }],
-    ['blockquote'],
-    ['link'],
-    ['clean'],
-  ],
-};
-
-const quillFormats = [
-  'header', 'bold', 'italic', 'underline', 'strike',
-  'color', 'background', 'list', 'indent', 'blockquote', 'link',
-];
-
 export default function MemoDialog({ open, onClose }) {
   const { user } = useAuth();
-  const [content, setContent]       = useState('');
-  const [saveStatus, setSaveStatus]  = useState('idle'); // 'idle' | 'saving' | 'saved'
-  const [isLoading, setIsLoading]    = useState(false);
+  const [content, setContent]      = useState('');
+  const [saveStatus, setSaveStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const [isLoading, setIsLoading]   = useState(false);
 
   const timerRef       = useRef(null);
   const isDirtyRef     = useRef(false);
@@ -46,7 +26,7 @@ export default function MemoDialog({ open, onClose }) {
 
   const lsKey = user ? LS_KEY(user.id) : null;
 
-  // On open: show localStorage draft immediately, then fetch from API
+  // On open: show localStorage draft instantly, then fetch from API
   useEffect(() => {
     if (!open) {
       initialisedRef.current = false;
@@ -93,7 +73,8 @@ export default function MemoDialog({ open, onClose }) {
   }, [lsKey]);
 
   // On every keystroke: update localStorage + debounce API save
-  const handleChange = useCallback((value) => {
+  const handleChange = useCallback((e) => {
+    const value = e.target.value;
     setContent(value);
     isDirtyRef.current = true;
     setSaveStatus('idle');
@@ -176,58 +157,39 @@ export default function MemoDialog({ open, onClose }) {
       </Box>
 
       {/* Editor */}
-      <DialogContent
-        sx={{
-          p: 0,
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          '& .quill': {
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          },
-          '& .ql-toolbar': {
-            borderTop: 0,
-            borderLeft: 0,
-            borderRight: 0,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            flexShrink: 0,
-          },
-          '& .ql-container': {
-            flex: 1,
-            border: 0,
-            fontSize: 14,
-            fontFamily: 'inherit',
-            overflow: 'auto',
-          },
-          '& .ql-editor': {
-            minHeight: '100%',
-            p: 2.5,
-            lineHeight: 1.7,
-          },
-          '& .ql-editor.ql-blank::before': {
-            fontStyle: 'normal',
-            color: 'text.disabled',
-          },
-        }}
-      >
+      <DialogContent sx={{ p: 0, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {isLoading && !initialisedRef.current ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1 }}>
             <CircularProgress size={28} />
           </Box>
         ) : (
-          <ReactQuill
-            theme="snow"
+          <TextField
+            multiline
+            fullWidth
             value={content}
             onChange={handleChange}
-            modules={quillModules}
-            formats={quillFormats}
             placeholder="Write your notes here..."
+            variant="outlined"
+            sx={{
+              flex: 1,
+              height: '100%',
+              '& .MuiOutlinedInput-root': {
+                height: '100%',
+                alignItems: 'flex-start',
+                borderRadius: 0,
+                border: 'none',
+                '& fieldset': { border: 'none' },
+              },
+              '& .MuiInputBase-input': {
+                height: '100% !important',
+                overflow: 'auto !important',
+                fontSize: 14,
+                lineHeight: 1.7,
+                p: 2.5,
+                resize: 'none',
+                fontFamily: 'inherit',
+              },
+            }}
           />
         )}
       </DialogContent>
