@@ -1,5 +1,5 @@
 # Database backups (may contain real customer data)
-/backup/
+/db_backup/
 
 # Local editor / tooling settings
 .claude/settings.local.json
