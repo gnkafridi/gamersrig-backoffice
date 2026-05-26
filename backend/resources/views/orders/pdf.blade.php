@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 @php
   $logoFull  = 'data:image/png;base64,' . base64_encode(file_get_contents(public_path('images/logo-full.png')));
-  $shareUrl  = url('/invoice/v/' . $invoice->share_token);
+  $shareUrl  = url('/invoice/v/' . $order->share_token);
   $qrSvg = (string) \SimpleSoftwareIO\QrCode\Facades\QrCode::size(130)->margin(1)->generate($shareUrl);
   $qrSrc = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
   /* ── Social icon generator ─────────────────────────────────────────
@@ -111,14 +111,14 @@
   $fbIconSrc = $__socialIcon('fb');
   $igIconSrc = $__socialIcon('ig');
   $statusLabels = ['paid'=>'PAID','draft'=>'DRAFT','sent'=>'DUE','overdue'=>'OVERDUE','cancelled'=>'CANCELLED'];
-  $statusLabel  = $statusLabels[$invoice->status] ?? strtoupper($invoice->status);
-  $badgeBg = match($invoice->status) {
+  $statusLabel  = $statusLabels[$order->status] ?? strtoupper($order->status);
+  $badgeBg = match($order->status) {
       'paid'      => '#EAF4E3',
       'overdue'   => '#FDECEA',
       'cancelled' => '#FFF3E0',
       default     => '#FFF3E0',
   };
-  $badgeColor = match($invoice->status) {
+  $badgeColor = match($order->status) {
       'paid'      => '#2D5419',
       'overdue'   => '#b71c1c',
       'cancelled' => '#8A5A00',
@@ -321,11 +321,11 @@
     <tr>
       <td style="width:54%;">
         <div class="bill-badge">BILL TO:</div>
-        <div class="customer-name">{{ $invoice->billing_name ?? $invoice->customer->name }}</div>
+        <div class="customer-name">{{ $order->billing_name ?? $order->customer->name }}</div>
         @php
-          $billPhone   = $invoice->billing_phone   ?? $invoice->customer->phone;
-          $billAddress = $invoice->billing_address ?? $invoice->customer->address;
-          $billCity    = $invoice->billing_city    ?? $invoice->customer->city;
+          $billPhone   = $order->billing_phone   ?? $order->customer->phone;
+          $billAddress = $order->billing_address ?? $order->customer->address;
+          $billCity    = $order->billing_city    ?? $order->customer->city;
         @endphp
         @if($billPhone)
           <div class="cust-row" style="display:table; width:100%; margin-bottom:8px;">
@@ -352,10 +352,10 @@
       </td>
       <td style="width:46%;">
         <div class="meta-right">
-          <div class="meta-line"><strong>Order No:</strong> {{ $invoice->invoice_number }}</div>
-          <div class="meta-line"><strong>Date:</strong> {{ $invoice->invoice_date->format('j F, Y') }}</div>
-          @if($invoice->due_date)
-            <div class="meta-line"><strong>Due:</strong> {{ $invoice->due_date->format('j F, Y') }}</div>
+          <div class="meta-line"><strong>Order No:</strong> {{ $order->order_number }}</div>
+          <div class="meta-line"><strong>Date:</strong> {{ $order->order_date->format('j F, Y') }}</div>
+          @if($order->due_date)
+            <div class="meta-line"><strong>Due:</strong> {{ $order->due_date->format('j F, Y') }}</div>
           @endif
           <hr class="meta-rule">
           <div class="status-wrap"><span class="status-badge" style="background: {{ $badgeBg }}; color: {{ $badgeColor }};">{{ $statusLabel }}</span></div>
@@ -375,7 +375,7 @@
       </tr>
     </thead>
     <tbody>
-      @foreach($invoice->items as $item)
+      @foreach($order->items as $item)
       <tr>
         <td><span class="item-name">{{ $item->product_name }}</span></td>
         <td>{{ $item->category ?: ($item->product?->category ?: '—') }}</td>
@@ -397,31 +397,31 @@
         <table style="width:100%">
           <tr class="trow">
             <td class="label">Item Cost:</td>
-            <td class="amount">Rs. {{ number_format($invoice->subtotal, 0) }}</td>
+            <td class="amount">Rs. {{ number_format($order->subtotal, 0) }}</td>
           </tr>
-          @if(floatval($invoice->discount) > 0)
+          @if(floatval($order->discount) > 0)
           <tr class="trow">
             <td class="label">Discount:</td>
-            <td class="amount" style="color:#c62828;">- Rs. {{ number_format($invoice->discount, 0) }}</td>
+            <td class="amount" style="color:#c62828;">- Rs. {{ number_format($order->discount, 0) }}</td>
           </tr>
           @endif
-          @if(floatval($invoice->tax) > 0)
+          @if(floatval($order->tax) > 0)
           <tr class="trow">
             <td class="label">Tax:</td>
-            <td class="amount">Rs. {{ number_format($invoice->tax, 0) }}</td>
+            <td class="amount">Rs. {{ number_format($order->tax, 0) }}</td>
           </tr>
           @endif
-          @if(floatval($invoice->delivery_fee) > 0)
+          @if(floatval($order->delivery_fee) > 0)
           <tr class="trow">
             <td class="label">Delivery Fee:</td>
-            <td class="amount">Rs. {{ number_format($invoice->delivery_fee, 0) }}</td>
+            <td class="amount">Rs. {{ number_format($order->delivery_fee, 0) }}</td>
           </tr>
           @endif
         </table>
         <table class="total-final">
           <tr>
             <td>TOTAL AMOUNT:</td>
-            <td class="amount">Rs. {{ number_format($invoice->total, 0) }}</td>
+            <td class="amount">Rs. {{ number_format($order->total, 0) }}</td>
           </tr>
         </table>
       </td>
@@ -430,7 +430,7 @@
 
   {{-- ── NOTE ───────────────────────────────────── --}}
   <div class="note-section">
-    <span class="note-text"><strong>Note:</strong> {{ $invoice->notes ?: 'No Return and Warranty on any item until the mentioned.' }}</span>
+    <span class="note-text"><strong>Note:</strong> {{ $order->notes ?: 'No Return and Warranty on any item until the mentioned.' }}</span>
   </div>
 
   {{-- ── FOOTER ─────────────────────────────────── --}}
@@ -439,8 +439,8 @@
     <tr>
       <td class="footer-contacts">
         <div class="frow" style="display:table;width:100%;"><div style="display:table-cell;width:28px;vertical-align:middle;"><img class="ico" src="{{ $iconPhone }}" alt=""></div><div style="display:table-cell;vertical-align:middle;">+92-324-3564474</div></div>
-        @if($invoice->payment_method)
-        <div class="frow" style="display:table;width:100%;"><div style="display:table-cell;width:28px;vertical-align:middle;"><img class="ico" src="{{ $iconPayment }}" alt=""></div><div style="display:table-cell;vertical-align:middle;"><span class="lbl">Payment Method:</span> {{ $invoice->payment_method }}</div></div>
+        @if($order->payment_method)
+        <div class="frow" style="display:table;width:100%;"><div style="display:table-cell;width:28px;vertical-align:middle;"><img class="ico" src="{{ $iconPayment }}" alt=""></div><div style="display:table-cell;vertical-align:middle;"><span class="lbl">Payment Method:</span> {{ $order->payment_method }}</div></div>
         @endif
         <div class="frow" style="display:table;width:100%;"><div style="display:table-cell;width:28px;vertical-align:top;padding-top:2px;"><img class="ico" src="{{ $iconEmail }}" alt=""></div><div style="display:table-cell;vertical-align:top;">gamersrig.official@gmail.com<br>www.GamersRig.com</div></div>
         <div class="frow" style="display:table;width:100%;"><div style="display:table-cell;width:28px;vertical-align:middle;"><img class="ico" src="{{ $iconLocation }}" alt=""></div><div style="display:table-cell;vertical-align:middle;">DS Sheet#26 Model Colony Malir, Karachi</div></div>

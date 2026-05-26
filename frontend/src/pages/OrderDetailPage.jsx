@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box, Typography, Button, Card, CardContent, CardHeader,
-  Grid, Table, TableBody, TableCell, TableHead, TableRow,
+  Grid, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Divider, Skeleton, Select, MenuItem, FormControl, Alert,
   IconButton, Tooltip, Snackbar, Avatar, Chip,
   ToggleButton, ToggleButtonGroup, TextField, Autocomplete,
@@ -16,7 +16,7 @@ import {
   Cancel, AssignmentReturn, AddCircleOutlined, EditOutlined,
   DeleteOutlined, RestoreFromTrash, Timeline as TimelineIcon, Person, AddLink,
 } from '@mui/icons-material';
-import { getInvoice, updateInvoice, deleteInvoice, getOrderTimeline, mapOrderItem } from '../api/orders';
+import { getOrder, updateOrder, deleteOrder, getOrderTimeline, mapOrderItem } from '../api/orders';
 import { getProducts } from '../api/products';
 import { getVendorProducts } from '../api/vendors';
 import dayjs from 'dayjs';
@@ -177,7 +177,7 @@ function StatusBadge({ status }) {
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [invoice, setInvoice] = useState(null);
+  const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -185,8 +185,8 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     setLoading(true); setNotFound(false);
-    getInvoice(id)
-      .then((r) => setInvoice(r.data))
+    getOrder(id)
+      .then((r) => setOrder(r.data))
       .catch((err) => { if (err.response?.status === 404) setNotFound(true); })
       .finally(() => setLoading(false));
   }, [id]);
@@ -194,35 +194,47 @@ export default function OrderDetailPage() {
   const handleStatusChange = async (status) => {
     setStatusSaving(true);
     try {
-      const res = await updateInvoice(id, { status });
-      setInvoice(res.data);
+      const res = await updateOrder(id, { status });
+      setOrder(res.data);
     } catch { setError('Failed to update status'); }
     finally { setStatusSaving(false); }
   };
 
   const handlePaymentChange = async (method) => {
-    if (!method || method === invoice.payment_method) return;
+    if (!method || method === order.payment_method) return;
     try {
-      const res = await updateInvoice(id, { payment_method: method });
-      setInvoice(res.data);
+      const res = await updateOrder(id, { payment_method: method });
+      setOrder(res.data);
     } catch { setError('Failed to update payment method'); }
   };
 
   const [editingDate, setEditingDate] = useState(false);
+
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesValue, setNotesValue]     = useState('');
+  const openNotesEdit = () => { setNotesValue(order.notes || ''); setEditingNotes(true); };
+  const handleNotesSave = async () => {
+    setEditingNotes(false);
+    if (notesValue === (order.notes || '')) return;
+    try {
+      const res = await updateOrder(id, { notes: notesValue });
+      setOrder(res.data);
+    } catch { setError('Failed to update notes'); }
+  };
   const handleDateChange = async (value) => {
     setEditingDate(false);
-    if (!value || value === dayjs(invoice.invoice_date).format('YYYY-MM-DD')) return;
+    if (!value || value === dayjs(order.order_date).format('YYYY-MM-DD')) return;
     try {
-      const res = await updateInvoice(id, { invoice_date: value });
-      setInvoice(res.data);
+      const res = await updateOrder(id, { order_date: value });
+      setOrder(res.data);
     } catch { setError('Failed to update order date'); }
   };
 
   const handleDeliveryChange = async (value) => {
-    if (value === (invoice.delivery_option || '')) return;
+    if (value === (order.delivery_option || '')) return;
     try {
-      const res = await updateInvoice(id, { delivery_option: value || null });
-      setInvoice(res.data);
+      const res = await updateOrder(id, { delivery_option: value || null });
+      setOrder(res.data);
     } catch { setError('Failed to update delivery option'); }
   };
 
@@ -251,19 +263,19 @@ export default function OrderDetailPage() {
     try {
       const body = opt._kind === 'vendor' ? { vendor_product_id: opt.id } : { product_id: opt.id };
       const res = await mapOrderItem(id, linkItem.id, body);
-      setInvoice(res.data);
+      setOrder(res.data);
       setLinkItem(null); setLinkSearch(''); setLinkOptions([]);
     } catch { setError('Failed to link product'); }
   };
 
   const handleDelete = async () => {
-    await deleteInvoice(id);
+    await deleteOrder(id);
     navigate('/orders');
   };
 
   const [copied, setCopied] = useState(false);
   const shareOrigin = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '');
-  const shareUrl = invoice?.share_token ? `${shareOrigin}/invoice/${invoice.share_token}` : null;
+  const shareUrl = order?.share_token ? `${shareOrigin}/order/${order.share_token}` : null;
 
   const handleView = async () => {
     if (!shareUrl) return;
@@ -275,7 +287,7 @@ export default function OrderDetailPage() {
     return <Box sx={{ p: 3 }}><Skeleton variant="rectangular" height={400} /></Box>;
   }
 
-  if (notFound || !invoice) {
+  if (notFound || !order) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 300, gap: 2 }}>
         <Typography variant="h6" color="text.secondary">Order not found</Typography>
@@ -284,7 +296,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  const isCod = invoice.payment_method?.toUpperCase() === 'COD';
+  const isCod = order.payment_method?.toUpperCase() === 'COD';
 
 
 
@@ -295,11 +307,11 @@ export default function OrderDetailPage() {
           <Button startIcon={<ArrowBack />} onClick={() => navigate('/orders')} variant="outlined" size="small">
             Back
           </Button>
-          <Typography variant="h5" fontWeight={700}>{invoice.invoice_number}</Typography>
-          <StatusBadge status={invoice.status} />
+          <Typography variant="h5" fontWeight={700}>{order.order_number}</Typography>
+          <StatusBadge status={order.status} />
         </Box>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Tooltip title="View & download invoice">
+          <Tooltip title="View & download order">
             <span>
               <IconButton color="primary" onClick={handleView} disabled={!shareUrl}
                 sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -308,7 +320,7 @@ export default function OrderDetailPage() {
             </span>
           </Tooltip>
           <FormControl size="small" sx={{ minWidth: 130 }} disabled={statusSaving}>
-            <Select value={invoice.status} onChange={(e) => handleStatusChange(e.target.value)}>
+            <Select value={order.status} onChange={(e) => handleStatusChange(e.target.value)}>
               <MenuItem value="pending">Pending</MenuItem>
               <MenuItem value="confirmed">Confirmed</MenuItem>
               <MenuItem value="shipped">Shipped</MenuItem>
@@ -333,28 +345,33 @@ export default function OrderDetailPage() {
               title={<Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>Customer</Typography>}
             />
             <CardContent sx={{ pt: 0 }}>
+              {/* Name: clickable link to customer profile */}
               <Typography
                 variant="h6" fontWeight={700} sx={{ mb: 1.5, cursor: 'pointer', '&:hover': { color: 'primary.main', textDecoration: 'underline' } }}
-                onClick={() => invoice.customer_id && navigate(`/customers/${invoice.customer_id}`)}
+                onClick={() => order.customer_id && navigate(`/customers/${order.customer_id}`)}
               >
-                {invoice.customer?.name ?? '—'}
+                {order.billing_name ?? order.customer?.name ?? '—'}
               </Typography>
-              {invoice.customer?.phone && (
+
+              {/* Use billing snapshot — not live customer data */}
+              {(order.billing_phone ?? order.customer?.phone) && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Avatar sx={{ width: 24, height: 24, bgcolor: 'success.main', flexShrink: 0 }}><Phone sx={{ fontSize: 13 }} /></Avatar>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="caption" color="text.disabled" display="block" sx={{ lineHeight: 1.2 }}>Phone</Typography>
-                    <Typography variant="body2" fontWeight={500}>{invoice.customer.phone}</Typography>
+                    <Typography variant="body2" fontWeight={500}>{order.billing_phone ?? order.customer?.phone}</Typography>
                   </Box>
                 </Box>
               )}
-              {(invoice.customer?.address || invoice.customer?.city) && (
+              {(order.billing_address ?? order.billing_city ?? order.customer?.address ?? order.customer?.city) && (
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                   <Avatar sx={{ width: 24, height: 24, bgcolor: 'success.main', mt: 0.2 }}><LocationOn sx={{ fontSize: 13 }} /></Avatar>
                   <Box>
-                    <Typography variant="caption" color="text.disabled" display="block" sx={{ lineHeight: 1.2 }}>Customer Billing Address</Typography>
+                    <Typography variant="caption" color="text.disabled" display="block" sx={{ lineHeight: 1.2 }}>
+                      Billing Address <Typography component="span" variant="caption" sx={{ color: 'success.main', fontSize: '0.6rem' }}>(at time of order)</Typography>
+                    </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {[invoice.customer.address, invoice.customer.city].filter(Boolean).join(', ')}
+                      {[order.billing_address ?? order.customer?.address, order.billing_city ?? order.customer?.city].filter(Boolean).join(', ')}
                     </Typography>
                   </Box>
                 </Box>
@@ -368,11 +385,12 @@ export default function OrderDetailPage() {
               title={<Typography variant="h6" fontWeight={600}>Items</Typography>}
             />
             <CardContent sx={{ pt: 0 }}>
-              <Table size="small">
+              <TableContainer>
+              <Table size="small" sx={{ tableLayout: 'auto' }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Product</TableCell>
+                    <TableCell sx={{ width: 32 }}>#</TableCell>
+                    <TableCell sx={{ minWidth: 220 }}>Product</TableCell>
                     <TableCell>Serial No.</TableCell>
                     <TableCell>Category</TableCell>
                     <TableCell align="right">Unit Price</TableCell>
@@ -381,7 +399,7 @@ export default function OrderDetailPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {invoice.items.map((item, i) => (
+                  {order.items.map((item, i) => (
                     <TableRow key={item.id}>
                       <TableCell>{i + 1}</TableCell>
                       <TableCell>
@@ -394,7 +412,7 @@ export default function OrderDetailPage() {
                         ) : item.vendor_product ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
                             <Typography variant="body2" fontWeight={600}
-                              component={RouterLink} to="/partner-products"
+                              component={RouterLink} to={`/partner-products/${item.vendor_product_id}`}
                               sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                               {item.product_name}
                             </Typography>
@@ -421,15 +439,39 @@ export default function OrderDetailPage() {
                   ))}
                 </TableBody>
               </Table>
-              {invoice.notes && (
-                <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, display: 'flex', gap: 1 }}>
-                  <StickyNote2 sx={{ fontSize: 16, color: 'text.secondary', mt: 0.2, flexShrink: 0 }} />
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>Notes</Typography>
-                    <Typography variant="body2">{invoice.notes}</Typography>
-                  </Box>
+              </TableContainer>
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <StickyNote2 sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                  <Typography variant="caption" color="text.secondary">Notes</Typography>
+                  {!editingNotes && (
+                    <Tooltip title="Edit notes">
+                      <IconButton size="small" onClick={openNotesEdit} sx={{ ml: 'auto', p: 0.25 }}>
+                        <EditOutlined sx={{ fontSize: 15 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 </Box>
-              )}
+                {editingNotes ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <TextField
+                      multiline rows={3} fullWidth size="small"
+                      value={notesValue}
+                      onChange={(e) => setNotesValue(e.target.value)}
+                      autoFocus
+                      placeholder="Add notes..."
+                    />
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                      <Button size="small" onClick={() => setEditingNotes(false)}>Cancel</Button>
+                      <Button size="small" variant="contained" onClick={handleNotesSave}>Save</Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color={order.notes ? 'text.primary' : 'text.disabled'} sx={{ pl: 3 }}>
+                    {order.notes || 'No notes'}
+                  </Typography>
+                )}
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -451,14 +493,14 @@ export default function OrderDetailPage() {
                     type="date"
                     size="small"
                     autoFocus
-                    defaultValue={dayjs(invoice.invoice_date).format('YYYY-MM-DD')}
+                    defaultValue={dayjs(order.order_date).format('YYYY-MM-DD')}
                     onChange={(e) => handleDateChange(e.target.value)}
                     onBlur={() => setEditingDate(false)}
                     sx={{ width: 160 }}
                   />
                 ) : (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography variant="body2" fontWeight={500}>{dayjs(invoice.invoice_date).format('DD MMM YYYY')}</Typography>
+                    <Typography variant="body2" fontWeight={500}>{dayjs(order.order_date).format('DD MMM YYYY')}</Typography>
                     <Tooltip title="Edit order date">
                       <IconButton size="small" onClick={() => setEditingDate(true)}>
                         <EditOutlined sx={{ fontSize: 15 }} />
@@ -493,7 +535,7 @@ export default function OrderDetailPage() {
                 <FormControl size="small" sx={{ minWidth: 150 }}>
                   <Select
                     displayEmpty
-                    value={invoice.delivery_option || ''}
+                    value={order.delivery_option || ''}
                     onChange={(e) => handleDeliveryChange(e.target.value)}
                     sx={{ fontSize: 13, '& .MuiSelect-select': { py: 0.5 } }}
                   >
@@ -513,36 +555,36 @@ export default function OrderDetailPage() {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                <Typography variant="body2">{fmt(invoice.subtotal)}</Typography>
+                <Typography variant="body2">{fmt(order.subtotal)}</Typography>
               </Box>
-              {parseFloat(invoice.discount) > 0 && (
+              {parseFloat(order.discount) > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <LocalOffer sx={{ fontSize: 14, color: 'error.main' }} />
                     <Typography variant="body2" color="error.main">Discount</Typography>
                   </Box>
-                  <Typography variant="body2" color="error.main">- {fmt(invoice.discount)}</Typography>
+                  <Typography variant="body2" color="error.main">- {fmt(order.discount)}</Typography>
                 </Box>
               )}
-              {parseFloat(invoice.tax) > 0 && (
+              {parseFloat(order.tax) > 0 && (
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">Tax</Typography>
-                  <Typography variant="body2">{fmt(invoice.tax)}</Typography>
+                  <Typography variant="body2">{fmt(order.tax)}</Typography>
                 </Box>
               )}
-              {parseFloat(invoice.delivery_fee) > 0 && (
+              {parseFloat(order.delivery_fee) > 0 && (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
                     <LocalShipping sx={{ fontSize: 14, color: 'text.disabled' }} />
                     <Typography variant="body2" color="text.secondary">Delivery Fee</Typography>
                   </Box>
-                  <Typography variant="body2">{fmt(invoice.delivery_fee)}</Typography>
+                  <Typography variant="body2">{fmt(order.delivery_fee)}</Typography>
                 </Box>
               )}
               <Divider sx={{ my: 1.5 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography fontWeight={700} fontSize={16}>Total</Typography>
-                <Typography fontWeight={700} fontSize={16} color="primary.main">{fmt(invoice.total)}</Typography>
+                <Typography fontWeight={700} fontSize={16} color="primary.main">{fmt(order.total)}</Typography>
               </Box>
             </CardContent>
           </Card>

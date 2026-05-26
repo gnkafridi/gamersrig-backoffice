@@ -18,7 +18,7 @@ class CodRecordController extends Controller
 
         if ($request->search) {
             $query->whereHas('invoice', function ($q) use ($request) {
-                $q->where('invoice_number', 'like', "%{$request->search}%");
+                $q->where('order_number', 'like', "%{$request->search}%");
             });
         }
 

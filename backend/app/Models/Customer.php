@@ -12,13 +12,13 @@ class Customer extends Model
 
     protected $fillable = ['name', 'email', 'phone', 'address', 'city', 'notes', 'created_by', 'updated_by'];
 
-    public function invoices()
+    public function orders()
     {
-        return $this->hasMany(Invoice::class);
+        return $this->hasMany(Order::class);
     }
 
     public function getTotalSpentAttribute(): float
     {
-        return $this->invoices()->where('status', 'paid')->sum('total');
+        return $this->orders()->where('status', 'delivered')->sum('total');
     }
 }

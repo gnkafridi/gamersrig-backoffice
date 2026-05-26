@@ -25,7 +25,7 @@ import {
   downloadLedgerCsv, downloadLedgerPdf,
 } from '../api/finance';
 import { Link as RouterLink } from 'react-router-dom';
-import { getInvoices } from '../api/orders';
+import { getOrders } from '../api/orders';
 
 const fmt = (n) => 'PKR ' + Number(n || 0).toLocaleString('en-PK', { maximumFractionDigits: 0 });
 
@@ -365,7 +365,7 @@ function RevenueTab({ period, onChanged }) {
   const [cod, setCod] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState(null); // add COD dialog
-  const [invoices, setInvoices] = useState([]);
+  const [orders, setInvoices] = useState([]);
   const [error, setError] = useState('');
 
   const load = useCallback(() => {
@@ -382,8 +382,8 @@ function RevenueTab({ period, onChanged }) {
 
   const openAdd = async () => {
     setError('');
-    // Load COD invoices that don't yet have a record
-    const r = await getInvoices({ status: '' });
+    // Load COD orders that don't yet have a record
+    const r = await getOrders({ status: '' });
     setInvoices(r.data.data || []);
     setDialog({ invoice_id: '', shipping_deduction: 0, courier_reference: '' });
   };
@@ -458,7 +458,7 @@ function RevenueTab({ period, onChanged }) {
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>Invoice</TableCell>
+            <TableCell>Order</TableCell>
             <TableCell>Customer</TableCell>
             <TableCell align="right">Order Amount</TableCell>
             <TableCell align="right">Shipping Deduction</TableCell>
@@ -474,8 +474,8 @@ function RevenueTab({ period, onChanged }) {
             <TableRow><TableCell colSpan={7} align="center" sx={{ color: 'text.secondary' }}>No COD records</TableCell></TableRow>
           ) : cod.map((c) => (
             <TableRow key={c.id}>
-              <TableCell>{c.invoice?.invoice_number || `#${c.invoice_id}`}</TableCell>
-              <TableCell>{c.invoice?.customer?.name || '—'}</TableCell>
+              <TableCell>{c.order?.order_number || `#${c.invoice_id}`}</TableCell>
+              <TableCell>{c.order?.customer?.name || '—'}</TableCell>
               <TableCell align="right">{fmt(c.order_amount)}</TableCell>
               <TableCell align="right">{fmt(c.shipping_deduction)}</TableCell>
               <TableCell align="right" sx={{ fontWeight: 700 }}>{fmt(c.net_revenue)}</TableCell>
@@ -500,11 +500,11 @@ function RevenueTab({ period, onChanged }) {
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <FormControl fullWidth size="small" sx={{ mt: 1, mb: 2 }}>
-            <InputLabel>Invoice</InputLabel>
-            <Select label="Invoice" value={dialog?.invoice_id || ''} onChange={(e) => setDialog({ ...dialog, invoice_id: e.target.value })}>
-              {invoices.map((inv) => (
+            <InputLabel>Order</InputLabel>
+            <Select label="Order" value={dialog?.invoice_id || ''} onChange={(e) => setDialog({ ...dialog, invoice_id: e.target.value })}>
+              {orders.map((inv) => (
                 <MenuItem key={inv.id} value={inv.id}>
-                  {inv.invoice_number} — {inv.customer?.name} ({fmt(inv.total)})
+                  {inv.order_number} — {inv.customer?.name} ({fmt(inv.total)})
                 </MenuItem>
               ))}
             </Select>

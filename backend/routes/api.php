@@ -5,7 +5,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\InvestmentController;
@@ -52,12 +52,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', CustomerController::class);
     Route::post('customers/{id}/restore', [CustomerController::class, 'restore']);
 
-    Route::apiResource('orders', InvoiceController::class)
-        ->parameters(['orders' => 'invoice']);
-    Route::post('orders/{id}/restore', [InvoiceController::class, 'restore']);
-    Route::get('orders/{invoice}/pdf', [InvoiceController::class, 'pdf']);
-    Route::get('orders/{invoice}/timeline', [InvoiceController::class, 'timeline']);
-    Route::patch('orders/{invoice}/items/{item}/map', [InvoiceController::class, 'mapItem']);
+    Route::apiResource('orders', OrderController::class);
+    Route::post('orders/{id}/restore', [OrderController::class, 'restore']);
+    Route::get('orders/{order}/pdf', [OrderController::class, 'pdf']);
+    Route::get('orders/{order}/timeline', [OrderController::class, 'timeline']);
+    Route::patch('orders/{order}/items/{item}/map', [OrderController::class, 'mapItem']);
 
     Route::get('analytics/dashboard', [AnalyticsController::class, 'dashboard']);
     Route::get('analytics/monthly-revenue', [AnalyticsController::class, 'monthlyRevenue']);

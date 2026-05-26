@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Order;
 use App\Traits\HasUserStamps;
 use Illuminate\Database\Eloquent\Model;
 
@@ -29,17 +30,16 @@ class CodRecord extends Model
     protected static function booted(): void
     {
         static::saving(function (CodRecord $cod) {
-            // Snapshot the invoice total on first create if not provided.
             if (empty($cod->order_amount) && $cod->invoice_id) {
-                $invoice = Invoice::find($cod->invoice_id);
-                $cod->order_amount = $invoice ? $invoice->total : 0;
+                $order = Order::find($cod->invoice_id);
+                $cod->order_amount = $order ? $order->total : 0;
             }
             $cod->net_revenue = (float) $cod->order_amount - (float) $cod->shipping_deduction;
         });
     }
 
-    public function invoice()
+    public function order()
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Order::class, 'invoice_id');
     }
 }

@@ -24,9 +24,9 @@ class Product extends Model
         'purchased_at' => 'date:Y-m-d',
     ];
 
-    public function invoiceItems()
+    public function orderItems()
     {
-        return $this->hasMany(InvoiceItem::class);
+        return $this->hasMany(OrderItem::class);
     }
 
     public function purchases()

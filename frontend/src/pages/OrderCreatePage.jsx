@@ -11,7 +11,7 @@ import {
   PersonOutlined, ReceiptLong, Inventory, Calculate,
   EmailOutlined, HomeOutlined,
 } from '@mui/icons-material';
-import { createInvoice } from '../api/orders';
+import { createOrder } from '../api/orders';
 import { getCustomers, createCustomer } from '../api/customers';
 import { getProducts } from '../api/products';
 import { getVendorProducts } from '../api/vendors';
@@ -65,7 +65,7 @@ export default function OrderCreatePage() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [newCustomer, setNewCustomer] = useState({ ...EMPTY_CUSTOMER });
   const [form, setForm] = useState({
-    invoice_date: dayjs().format('YYYY-MM-DD'),
+    order_date: dayjs().format('YYYY-MM-DD'),
     status: 'pending',
     payment_method: '',
     delivery_option: '',
@@ -183,7 +183,7 @@ export default function OrderCreatePage() {
           discount_type: it.discount_type,
         })),
       };
-      const res = await createInvoice(payload);
+      const res = await createOrder(payload);
       navigate(`/orders/${res.data.id}`);
     } catch (err) {
       const errs = err.response?.data?.errors;
@@ -314,8 +314,8 @@ export default function OrderCreatePage() {
               <SectionHeader icon={<ReceiptLong />} title="Order Details" />
               <Grid container spacing={2}>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <TextField fullWidth label="Order Date" type="date" value={form.invoice_date}
-                    onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+                  <TextField fullWidth label="Order Date" type="date" value={form.order_date}
+                    onChange={(e) => setForm({ ...form, order_date: e.target.value })}
                     slotProps={{ inputLabel: { shrink: true } }} />
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>

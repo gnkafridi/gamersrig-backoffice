@@ -10,7 +10,7 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Customer::with(['creator:id,name', 'updater:id,name'])->withCount('invoices');
+        $query = Customer::with(['creator:id,name', 'updater:id,name'])->withCount('orders');
 
         if ($request->search) {
             $query->where(function ($q) use ($request) {
@@ -20,9 +20,18 @@ class CustomerController extends Controller
             });
         }
 
+        if ($request->city) {
+            $query->where('city', $request->city);
+        }
+
+        if ($request->province_cities) {
+            $cities = explode(',', $request->province_cities);
+            $query->whereIn('city', $cities);
+        }
+
         $paginated = $query->orderBy('name')->paginate(20);
 
-        $statsQuery = Customer::withCount('invoices');
+        $statsQuery = Customer::withCount('orders');
         if ($request->search) {
             $statsQuery->where(function ($q) use ($request) {
                 $q->where('name', 'like', "%{$request->search}%")
@@ -30,13 +39,20 @@ class CustomerController extends Controller
                   ->orWhere('phone', 'like', "%{$request->search}%");
             });
         }
+        if ($request->city) {
+            $statsQuery->where('city', $request->city);
+        }
+        if ($request->province_cities) {
+            $cities = explode(',', $request->province_cities);
+            $statsQuery->whereIn('city', $cities);
+        }
         $all = $statsQuery->get(['id', 'is_active']);
 
         $summary = [
             'total_customers'  => $all->count(),
             'active_customers' => $all->where('is_active', true)->count(),
-            'with_orders'      => $all->where('invoices_count', '>', 0)->count(),
-            'no_orders'        => $all->where('invoices_count', 0)->count(),
+            'with_orders'      => $all->where('orders_count', '>', 0)->count(),
+            'no_orders'        => $all->where('orders_count', 0)->count(),
         ];
 
         return response()->json(array_merge($paginated->toArray(), ['summary' => $summary]));
@@ -59,13 +75,13 @@ class CustomerController extends Controller
 
     public function show(Customer $customer)
     {
-        $customer->load(['invoices' => fn($q) => $q->orderByDesc('invoice_date')]);
+        $customer->load(['orders' => fn($q) => $q->orderByDesc('order_date')]);
 
-        $orders       = $customer->invoices;
+        $orders       = $customer->orders;
         $totalSpent   = $orders->sum('total');
         $totalOrders  = $orders->count();
         $avgOrder     = $totalOrders ? round($totalSpent / $totalOrders, 2) : 0;
-        $lastOrderAt  = $orders->first()?->invoice_date;
+        $lastOrderAt  = $orders->first()?->order_date;
 
         return response()->json([
             'customer'    => $customer,

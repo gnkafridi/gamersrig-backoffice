@@ -8,7 +8,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
 import { Add, Search, Visibility, Delete, ShoppingCart } from '@mui/icons-material';
-import { getInvoices, deleteInvoice, restoreInvoice } from '../api/orders';
+import { getOrders, deleteOrder, restoreOrder } from '../api/orders';
 import { primaryBtnSx } from '../utils/styles';
 import dayjs from 'dayjs';
 
@@ -38,7 +38,7 @@ const Badge = ({ bg, color, dot, label }) => (
 );
 
 export default function OrdersPage() {
-  const [invoices, setInvoices] = useState([]);
+  const [orders, setInvoices] = useState([]);
   const [meta, setMeta] = useState({ total: 0 });
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -49,7 +49,7 @@ export default function OrdersPage() {
   const [confirmTarget, setConfirmTarget] = useState(null); // inv object to confirm
   const [undoTarget, setUndoTarget] = useState(null);
   const undoTimer = React.useRef(null);
-  const [sortBy, setSortBy] = useState('invoice_date');
+  const [sortBy, setSortBy] = useState('order_date');
   const [sortDir, setSortDir] = useState('desc');
   const navigate = useNavigate();
 
@@ -61,7 +61,7 @@ export default function OrdersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    getInvoices({ search, status, page: page + 1, sort_by: sortBy, sort_dir: sortDir })
+    getOrders({ search, status, page: page + 1, sort_by: sortBy, sort_dir: sortDir })
       .then((r) => {
         setInvoices(r.data.data);
         setMeta({ total: r.data.total });
@@ -77,10 +77,10 @@ export default function OrdersPage() {
     setConfirmTarget(null);
     setDeleting(inv.id);
     try {
-      await deleteInvoice(inv.id);
+      await deleteOrder(inv.id);
       load();
       clearTimeout(undoTimer.current);
-      setUndoTarget({ id: inv.id, label: inv.invoice_number });
+      setUndoTarget({ id: inv.id, label: inv.order_number });
       undoTimer.current = setTimeout(() => setUndoTarget(null), 6000);
     } finally { setDeleting(null); }
   };
@@ -89,7 +89,7 @@ export default function OrdersPage() {
     if (!undoTarget) return;
     clearTimeout(undoTimer.current);
     setUndoTarget(null);
-    await restoreInvoice(undoTarget.id);
+    await restoreOrder(undoTarget.id);
     load();
   };
 
@@ -158,9 +158,9 @@ export default function OrdersPage() {
             <TableHead>
               <TableRow>
                 {[
-                  { id: 'invoice_number', label: 'Order #' },
+                  { id: 'order_number', label: 'Order #' },
                   { id: 'customer',       label: 'Customer', noSort: true },
-                  { id: 'invoice_date',   label: 'Order Date' },
+                  { id: 'order_date',   label: 'Order Date' },
                   { id: 'status',         label: 'Status' },
                   { id: 'payment_method', label: 'Payment', noSort: true },
                 ].map((col) => (
@@ -195,7 +195,7 @@ export default function OrdersPage() {
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>{Array.from({ length: 9 }).map((_, j) => <TableCell key={j}><Skeleton /></TableCell>)}</TableRow>
                   ))
-                : invoices.map((inv) => {
+                : orders.map((inv) => {
                     return (
                       <TableRow key={inv.id} hover sx={{ cursor: 'pointer' }}
                         onClick={(e) => { if (e.ctrlKey || e.metaKey) window.open(`/orders/${inv.id}`, '_blank'); else navigate(`/orders/${inv.id}`); }}>
@@ -204,7 +204,7 @@ export default function OrdersPage() {
                             component={RouterLink} to={`/orders/${inv.id}`}
                             onClick={(e) => e.stopPropagation()}
                             sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                            {inv.invoice_number}
+                            {inv.order_number}
                           </Typography>
                         </TableCell>
                         <TableCell onClick={(e) => { e.stopPropagation(); navigate(`/customers/${inv.customer_id}`); }}>
@@ -212,7 +212,7 @@ export default function OrdersPage() {
                             {inv.customer?.name}
                           </Typography>
                         </TableCell>
-                        <TableCell><Typography variant="caption">{dayjs(inv.invoice_date).format('DD MMM YYYY')}</Typography></TableCell>
+                        <TableCell><Typography variant="caption">{dayjs(inv.order_date).format('DD MMM YYYY')}</Typography></TableCell>
                         <TableCell>
                           {(() => { const s = STATUS_STYLE[inv.status] ?? STATUS_STYLE.returned; return <Badge bg={s.bg} color={s.color} dot={s.dot} label={STATUS_LABELS[inv.status] ?? inv.status} />; })()}
                         </TableCell>
@@ -246,7 +246,7 @@ export default function OrdersPage() {
       <Dialog open={Boolean(confirmTarget)} onClose={() => setConfirmTarget(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete Order?</DialogTitle>
         <DialogContent>
-          <Typography>Delete order <strong>{confirmTarget?.invoice_number}</strong>? This can be undone.</Typography>
+          <Typography>Delete order <strong>{confirmTarget?.order_number}</strong>? This can be undone.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmTarget(null)}>Cancel</Button>

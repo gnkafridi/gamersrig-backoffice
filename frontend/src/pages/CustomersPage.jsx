@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box, Typography, Button, Card, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TablePagination, IconButton,
   TextField, InputAdornment, Dialog, DialogTitle, DialogContent,
   DialogActions, Grid, Alert, Skeleton, Tooltip, Avatar, Autocomplete,
-  Snackbar, Divider,
+  Snackbar, Divider, MenuItem,
 } from '@mui/material';
-import { Add, Search, Edit, Delete } from '@mui/icons-material';
+import { Add, Search, Edit, Delete, FilterList } from '@mui/icons-material';
 import { primaryBtnSx } from '../utils/styles';
 import dayjs from 'dayjs';
 import pakistanCities from '../data/pakistanCities';
@@ -20,7 +20,15 @@ export default function CustomersPage() {
   const [meta, setMeta] = useState({ total: 0 });
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterCity, setFilterCity] = useState('');
   const [page, setPage] = useState(0);
+
+  // Derived province list and filtered city list
+  const provinces = useMemo(() => [...new Set(pakistanCities.map(c => c.province))].sort(), []);
+  const citiesForProvince = useMemo(() =>
+    filterProvince ? pakistanCities.filter(c => c.province === filterProvince) : pakistanCities,
+  [filterProvince]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -34,10 +42,19 @@ export default function CustomersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    getCustomers({ search, page: page + 1 })
+    const params = { search, page: page + 1 };
+    if (filterCity) {
+      params.city = filterCity;
+    } else if (filterProvince) {
+      params.province_cities = pakistanCities
+        .filter(c => c.province === filterProvince)
+        .map(c => c.city)
+        .join(',');
+    }
+    getCustomers(params)
       .then((r) => { setCustomers(r.data.data); setMeta({ total: r.data.total }); setSummary(r.data.summary); })
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, [search, page, filterProvince, filterCity]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -111,13 +128,51 @@ export default function CustomersPage() {
       </Card>
 
       <Card>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+          {/* Search */}
           <TextField
             size="small" placeholder="Search customers..."
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search sx={{ fontSize: 18, color: 'text.secondary' }} /></InputAdornment> } }}
-            sx={{ width: 280 }}
+            sx={{ width: 260 }}
           />
+
+          {/* Province filter */}
+          <TextField
+            select size="small" label="Province"
+            value={filterProvince}
+            onChange={(e) => { setFilterProvince(e.target.value); setFilterCity(''); setPage(0); }}
+            sx={{ width: 160 }}
+            slotProps={{ input: { startAdornment: <InputAdornment position="start"><FilterList sx={{ fontSize: 16, color: 'text.secondary' }} /></InputAdornment> } }}
+          >
+            <MenuItem value=""><em>All Provinces</em></MenuItem>
+            {provinces.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+          </TextField>
+
+          {/* City filter */}
+          <Autocomplete
+            size="small"
+            options={citiesForProvince}
+            groupBy={(o) => o.province}
+            getOptionLabel={(o) => typeof o === 'string' ? o : o.city}
+            value={citiesForProvince.find(c => c.city === filterCity) || null}
+            onChange={(_, v) => { setFilterCity(v ? v.city : ''); setPage(0); }}
+            sx={{ width: 200 }}
+            renderInput={(params) => (
+              <TextField {...params} label="City" placeholder="All Cities" />
+            )}
+          />
+
+          {/* Clear filters */}
+          {(filterProvince || filterCity) && (
+            <Button
+              size="small" color="inherit"
+              onClick={() => { setFilterProvince(''); setFilterCity(''); setPage(0); }}
+              sx={{ color: 'text.secondary', fontSize: '0.75rem', textTransform: 'none', minWidth: 'auto' }}
+            >
+              Clear filters
+            </Button>
+          )}
         </Box>
         <TableContainer>
           <Table size="small">
@@ -127,7 +182,8 @@ export default function CustomersPage() {
                 <TableCell>Email</TableCell>
                 <TableCell>Phone</TableCell>
                 <TableCell>City</TableCell>
-                <TableCell align="right">Invoices</TableCell>
+                <TableCell>Province</TableCell>
+                <TableCell align="right">Orders</TableCell>
                 <TableCell>
                   <Typography variant="caption" color="text.secondary" display="block">Created</Typography>
                 </TableCell>
@@ -140,7 +196,7 @@ export default function CustomersPage() {
             <TableBody>
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>{Array.from({ length: 8 }).map((_, j) => <TableCell key={j}><Skeleton /></TableCell>)}</TableRow>
+                    <TableRow key={i}>{Array.from({ length: 9 }).map((_, j) => <TableCell key={j}><Skeleton /></TableCell>)}</TableRow>
                   ))
                 : customers.map((c) => (
                     <TableRow key={c.id} hover>
@@ -155,7 +211,8 @@ export default function CustomersPage() {
                       <TableCell><Typography variant="caption" color="text.secondary">{c.email || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="caption">{c.phone || '—'}</Typography></TableCell>
                       <TableCell><Typography variant="caption">{c.city || '—'}</Typography></TableCell>
-                      <TableCell align="right"><Typography variant="body2">{c.invoices_count}</Typography></TableCell>
+                      <TableCell><Typography variant="caption">{pakistanCities.find(x => x.city === c.city)?.province || '—'}</Typography></TableCell>
+                      <TableCell align="right"><Typography variant="body2">{c.orders_count}</Typography></TableCell>
                       <TableCell>
                         <Typography variant="body2">{c.creator?.name ?? '—'}</Typography>
                         <Typography variant="caption" color="text.secondary">{c.created_at ? dayjs(c.created_at).format('DD MMM YY HH:mm') : '—'}</Typography>

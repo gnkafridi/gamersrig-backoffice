@@ -118,21 +118,28 @@ class InvoiceController extends Controller
             $deliveryFee = $data['delivery_fee'] ?? 0;
             $total = $subtotal - $discount + $tax + $deliveryFee;
 
+            // Snapshot billing details from customer at time of order
+            $customer = \App\Models\Customer::find($data['customer_id']);
+
             $invoice = Invoice::create([
-                'invoice_number' => Invoice::generateNumber(),
-                'customer_id' => $data['customer_id'],
-                'invoice_date' => $data['invoice_date'],
-                'due_date' => $data['due_date'] ?? null,
-                'status' => $data['status'] ?? 'pending',
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'tax' => $tax,
-                'delivery_fee' => $deliveryFee,
-                'payment_method' => $data['payment_method'] ?? null,
+                'invoice_number'  => Invoice::generateNumber(),
+                'customer_id'     => $data['customer_id'],
+                'billing_name'    => $customer?->name,
+                'billing_phone'   => $customer?->phone,
+                'billing_city'    => $customer?->city,
+                'billing_address' => $customer?->address,
+                'invoice_date'    => $data['invoice_date'],
+                'due_date'        => $data['due_date'] ?? null,
+                'status'          => $data['status'] ?? 'pending',
+                'subtotal'        => $subtotal,
+                'discount'        => $discount,
+                'tax'             => $tax,
+                'delivery_fee'    => $deliveryFee,
+                'payment_method'  => $data['payment_method'] ?? null,
                 'delivery_option' => $data['delivery_option'] ?? null,
-                'total' => $total,
-                'cost_total' => $costTotal,
-                'notes' => $data['notes'] ?? null,
+                'total'           => $total,
+                'cost_total'      => $costTotal,
+                'notes'           => $data['notes'] ?? null,
             ]);
 
             foreach ($data['items'] as $item) {
@@ -196,6 +203,15 @@ class InvoiceController extends Controller
                     $invoice->items()->create($item);
                 }
                 unset($data['items']);
+            }
+
+            // If customer changed, re-snapshot billing details
+            if (isset($data['customer_id'])) {
+                $customer = \App\Models\Customer::find($data['customer_id']);
+                $data['billing_name']    = $customer?->name;
+                $data['billing_phone']   = $customer?->phone;
+                $data['billing_city']    = $customer?->city;
+                $data['billing_address'] = $customer?->address;
             }
 
             $invoice->update($data);

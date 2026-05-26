@@ -9,8 +9,9 @@ import {
 } from '@mui/material';
 import {
   Add, Search, Edit, Delete, HandshakeOutlined, Inventory,
-  StorefrontOutlined, AssessmentOutlined,
+  StorefrontOutlined, AssessmentOutlined, Visibility,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartTooltip, ResponsiveContainer, Cell,
@@ -81,6 +82,7 @@ export default function PartnerProductsPage() {
 
 /* ─────────────────────────── Tab 1: Partner Products ─────────────────────────── */
 function ProductsTab({ vendorList }) {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [meta, setMeta] = useState({ total: 0 });
   const [summary, setSummary] = useState(null);
@@ -303,6 +305,7 @@ function ProductsTab({ vendorList }) {
                           </Box>
                         </TableCell>
                         <TableCell align="right">
+                          <Tooltip title="View Details"><IconButton size="small" onClick={() => navigate(`/partner-products/${p.id}`)}><Visibility fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Edit"><IconButton size="small" onClick={() => openEdit(p)}><Edit fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Delete"><IconButton size="small" color="error" disabled={deleting === p.id} onClick={() => setConfirmTarget(p)}><Delete fontSize="small" /></IconButton></Tooltip>
                         </TableCell>

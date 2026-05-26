@@ -83,7 +83,7 @@ export default function DashboardPage() {
           <StatCard
             title="This Month Revenue"
             value={fmt(stats?.this_month.revenue)}
-            subtitle={`${stats?.this_month.invoice_count || 0} invoices`}
+            subtitle={`${stats?.this_month.invoice_count || 0} orders`}
             trend={revTrend}
             icon={<AttachMoney />}
             loading={loading}
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           <StatCard
             title="This Year Revenue"
             value={fmt(stats?.this_year.revenue)}
-            subtitle={`${stats?.this_year.invoice_count || 0} invoices`}
+            subtitle={`${stats?.this_year.invoice_count || 0} orders`}
             icon={<Receipt />}
             loading={loading}
             color="#ff6f00"

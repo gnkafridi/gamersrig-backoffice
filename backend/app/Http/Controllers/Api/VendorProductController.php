@@ -86,7 +86,32 @@ class VendorProductController extends Controller
 
     public function show(VendorProduct $vendorProduct)
     {
-        return response()->json($vendorProduct->load('vendor:id,name'));
+        $vendorProduct->load('vendor:id,name,phone,email');
+
+        // Orders that contain this vendor product
+        $orders = \App\Models\OrderItem::with(['order:id,order_number,order_date,status,total,customer_id', 'order.customer:id,name'])
+            ->where('vendor_product_id', $vendorProduct->id)
+            ->get()
+            ->map(fn($item) => [
+                'order_id'     => $item->order_id,
+                'order_number' => $item->order?->order_number,
+                'order_date'   => $item->order?->order_date,
+                'status'       => $item->order?->status,
+                'customer'     => $item->order?->customer?->name,
+                'quantity'     => $item->quantity,
+                'unit_price'   => $item->unit_price,
+                'total'        => $item->total,
+            ]);
+
+        return response()->json([
+            'product' => $vendorProduct,
+            'orders'  => $orders,
+            'stats'   => [
+                'total_sold'    => $orders->sum('quantity'),
+                'total_revenue' => $orders->sum('total'),
+                'order_count'   => $orders->count(),
+            ],
+        ]);
     }
 
     public function update(Request $request, VendorProduct $vendorProduct)

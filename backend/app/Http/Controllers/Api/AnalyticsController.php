@@ -20,16 +20,16 @@ class AnalyticsController extends Controller
     {
         $now = now();
 
-        $thisMonth = Invoice::where('status', 'delivered')
-            ->whereYear('invoice_date', $now->year)
-            ->whereMonth('invoice_date', $now->month);
+        $thisMonth = Order::where('status', 'delivered')
+            ->whereYear('order_date', $now->year)
+            ->whereMonth('order_date', $now->month);
 
-        $lastMonth = Invoice::where('status', 'delivered')
-            ->whereYear('invoice_date', $now->copy()->subMonth()->year)
-            ->whereMonth('invoice_date', $now->copy()->subMonth()->month);
+        $lastMonth = Order::where('status', 'delivered')
+            ->whereYear('order_date', $now->copy()->subMonth()->year)
+            ->whereMonth('order_date', $now->copy()->subMonth()->month);
 
-        $thisYear = Invoice::where('status', 'delivered')
-            ->whereYear('invoice_date', $now->year);
+        $thisYear = Order::where('status', 'delivered')
+            ->whereYear('order_date', $now->year);
 
         return response()->json([
             'this_month' => [
@@ -48,11 +48,11 @@ class AnalyticsController extends Controller
                 'invoice_count' => (clone $thisYear)->count(),
             ],
             'all_time' => [
-                'revenue' => (float) Invoice::where('status', 'delivered')->sum('total'),
-                'profit' => (float) Invoice::where('status', 'delivered')->sum(DB::raw('total - cost_total')),
-                'invoice_count' => Invoice::where('status', 'delivered')->count(),
+                'revenue' => (float) Order::where('status', 'delivered')->sum('total'),
+                'profit' => (float) Order::where('status', 'delivered')->sum(DB::raw('total - cost_total')),
+                'invoice_count' => Order::where('status', 'delivered')->count(),
             ],
-            'pending_invoices' => Invoice::whereIn('status', ['pending', 'confirmed', 'shipped'])->count(),
+            'pending_invoices' => Order::whereIn('status', ['pending', 'confirmed', 'shipped'])->count(),
             'total_customers' => Customer::count(),
             'total_products' => Product::where('is_active', true)->count(),
         ]);
@@ -62,10 +62,10 @@ class AnalyticsController extends Controller
     {
         $year = $request->year ?? now()->year;
 
-        $data = Invoice::where('status', 'delivered')
-            ->whereYear('invoice_date', $year)
+        $data = Order::where('status', 'delivered')
+            ->whereYear('order_date', $year)
             ->select(
-                DB::raw('MONTH(invoice_date) as month'),
+                DB::raw('MONTH(order_date) as month'),
                 DB::raw('SUM(total) as revenue'),
                 DB::raw('SUM(total - cost_total) as profit'),
                 DB::raw('COUNT(*) as invoice_count')
@@ -93,22 +93,22 @@ class AnalyticsController extends Controller
     {
         $period = $request->period ?? 'all'; // this_month, this_year, all
 
-        $query = InvoiceItem::join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->whereIn('invoices.status', self::SALE_STATUSES)
+        $query = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+            ->whereIn('orders.status', self::SALE_STATUSES)
             ->select(
-                'invoice_items.product_name',
-                'invoice_items.product_id',
-                DB::raw('SUM(invoice_items.quantity) as total_quantity'),
-                DB::raw('SUM(invoice_items.total) as total_revenue'),
-                DB::raw('SUM(invoice_items.total - (invoice_items.cost_price * invoice_items.quantity)) as total_profit')
+                'order_items.product_name',
+                'order_items.product_id',
+                DB::raw('SUM(order_items.quantity) as total_quantity'),
+                DB::raw('SUM(order_items.total) as total_revenue'),
+                DB::raw('SUM(order_items.total - (order_items.cost_price * order_items.quantity)) as total_profit')
             )
-            ->groupBy('invoice_items.product_name', 'invoice_items.product_id');
+            ->groupBy('order_items.product_name', 'order_items.product_id');
 
         if ($period === 'this_month') {
-            $query->whereYear('invoices.invoice_date', now()->year)
-                  ->whereMonth('invoices.invoice_date', now()->month);
+            $query->whereYear('invoices.order_date', now()->year)
+                  ->whereMonth('invoices.order_date', now()->month);
         } elseif ($period === 'this_year') {
-            $query->whereYear('invoices.invoice_date', now()->year);
+            $query->whereYear('invoices.order_date', now()->year);
         }
 
         $products = $query->orderByDesc('total_revenue')->limit(10)->get();
@@ -129,7 +129,7 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $base    = Invoice::whereIn('status', self::SALE_STATUSES)->whereBetween('invoice_date', [$from, $to]);
+        $base    = Order::whereIn('status', self::SALE_STATUSES)->whereBetween('order_date', [$from, $to]);
         $revenue = (float) (clone $base)->sum('total');
         $profit  = (float) (clone $base)->sum(DB::raw('total - cost_total'));
         $count   = (clone $base)->count();
@@ -149,19 +149,19 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $rows = InvoiceItem::join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->whereIn('invoices.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.invoice_date', [$from, $to])
-            ->whereNotNull('invoice_items.category')
-            ->where('invoice_items.category', '!=', '')
+        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+            ->whereIn('orders.status', self::SALE_STATUSES)
+            ->whereBetween('invoices.order_date', [$from, $to])
+            ->whereNotNull('order_items.category')
+            ->where('order_items.category', '!=', '')
             ->select(
-                'invoice_items.category',
-                DB::raw('SUM(invoice_items.quantity) as units_sold'),
-                DB::raw('SUM(invoice_items.total) as revenue'),
-                DB::raw('SUM(invoice_items.total - (invoice_items.cost_price * invoice_items.quantity)) as profit'),
-                DB::raw('COUNT(DISTINCT invoices.id) as order_count')
+                'order_items.category',
+                DB::raw('SUM(order_items.quantity) as units_sold'),
+                DB::raw('SUM(order_items.total) as revenue'),
+                DB::raw('SUM(order_items.total - (order_items.cost_price * order_items.quantity)) as profit'),
+                DB::raw('COUNT(DISTINCT orders.id) as order_count')
             )
-            ->groupBy('invoice_items.category')
+            ->groupBy('order_items.category')
             ->orderByDesc('revenue')
             ->get()
             ->map(fn($r) => [
@@ -182,19 +182,19 @@ class AnalyticsController extends Controller
         $sort  = in_array($request->sort, ['revenue', 'units_sold', 'profit', 'margin']) ? $request->sort : 'revenue';
         $order = $request->order === 'asc' ? 'asc' : 'desc';
 
-        $rows = InvoiceItem::join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->whereIn('invoices.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.invoice_date', [$from, $to])
+        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+            ->whereIn('orders.status', self::SALE_STATUSES)
+            ->whereBetween('invoices.order_date', [$from, $to])
             ->select(
-                'invoice_items.product_id',
-                'invoice_items.product_name',
-                'invoice_items.category',
-                DB::raw('SUM(invoice_items.quantity) as units_sold'),
-                DB::raw('SUM(invoice_items.total) as revenue'),
-                DB::raw('SUM(invoice_items.total - (invoice_items.cost_price * invoice_items.quantity)) as profit'),
-                DB::raw('COUNT(DISTINCT invoices.id) as order_count')
+                'order_items.product_id',
+                'order_items.product_name',
+                'order_items.category',
+                DB::raw('SUM(order_items.quantity) as units_sold'),
+                DB::raw('SUM(order_items.total) as revenue'),
+                DB::raw('SUM(order_items.total - (order_items.cost_price * order_items.quantity)) as profit'),
+                DB::raw('COUNT(DISTINCT orders.id) as order_count')
             )
-            ->groupBy('invoice_items.product_id', 'invoice_items.product_name', 'invoice_items.category')
+            ->groupBy('order_items.product_id', 'order_items.product_name', 'order_items.category')
             ->get()
             ->map(fn($r) => [
                 'product_id'   => $r->product_id,
@@ -230,10 +230,10 @@ class AnalyticsController extends Controller
             'month' => '%Y-%m',
         };
 
-        $rows = Invoice::whereIn('status', self::SALE_STATUSES)
-            ->whereBetween('invoice_date', [$from, $to])
+        $rows = Order::whereIn('status', self::SALE_STATUSES)
+            ->whereBetween('order_date', [$from, $to])
             ->select(
-                DB::raw("DATE_FORMAT(invoice_date, '{$format}') as period"),
+                DB::raw("DATE_FORMAT(order_date, '{$format}') as period"),
                 DB::raw('SUM(total) as revenue'),
                 DB::raw('SUM(total - cost_total) as profit'),
                 DB::raw('COUNT(*) as orders')
@@ -274,8 +274,8 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $rows = Invoice::whereIn('status', self::SALE_STATUSES)
-            ->whereBetween('invoice_date', [$from, $to])
+        $rows = Order::whereIn('status', self::SALE_STATUSES)
+            ->whereBetween('order_date', [$from, $to])
             ->select(
                 DB::raw("COALESCE(NULLIF(payment_method, ''), 'Unknown') as payment_method"),
                 DB::raw('SUM(total) as revenue'),
@@ -299,16 +299,16 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $rows = InvoiceItem::join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->leftJoin('products', 'invoice_items.product_id', '=', 'products.id')
-            ->whereIn('invoices.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.invoice_date', [$from, $to])
+        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+            ->leftJoin('products', 'order_items.product_id', '=', 'products.id')
+            ->whereIn('orders.status', self::SALE_STATUSES)
+            ->whereBetween('invoices.order_date', [$from, $to])
             ->select(
                 DB::raw("COALESCE(NULLIF(products.brand, ''), 'Unbranded') as brand"),
-                DB::raw('SUM(invoice_items.quantity) as units_sold'),
-                DB::raw('SUM(invoice_items.total) as revenue'),
-                DB::raw('SUM(invoice_items.total - (invoice_items.cost_price * invoice_items.quantity)) as profit'),
-                DB::raw('COUNT(DISTINCT invoices.id) as order_count')
+                DB::raw('SUM(order_items.quantity) as units_sold'),
+                DB::raw('SUM(order_items.total) as revenue'),
+                DB::raw('SUM(order_items.total - (order_items.cost_price * order_items.quantity)) as profit'),
+                DB::raw('COUNT(DISTINCT orders.id) as order_count')
             )
             ->groupBy('brand')
             ->orderByDesc('revenue')
@@ -330,9 +330,9 @@ class AnalyticsController extends Controller
         $groupBy = $request->group_by ?? 'month'; // month or year
 
         if ($groupBy === 'year') {
-            $data = Invoice::where('status', 'delivered')
+            $data = Order::where('status', 'delivered')
                 ->select(
-                    DB::raw('YEAR(invoice_date) as period'),
+                    DB::raw('YEAR(order_date) as period'),
                     DB::raw('SUM(total) as revenue'),
                     DB::raw('SUM(total - cost_total) as profit'),
                     DB::raw('COUNT(*) as invoice_count')
@@ -341,9 +341,9 @@ class AnalyticsController extends Controller
                 ->orderBy('period')
                 ->get();
         } else {
-            $data = Invoice::where('status', 'delivered')
+            $data = Order::where('status', 'delivered')
                 ->select(
-                    DB::raw('DATE_FORMAT(invoice_date, "%Y-%m") as period'),
+                    DB::raw('DATE_FORMAT(order_date, "%Y-%m") as period'),
                     DB::raw('SUM(total) as revenue'),
                     DB::raw('SUM(total - cost_total) as profit'),
                     DB::raw('COUNT(*) as invoice_count')

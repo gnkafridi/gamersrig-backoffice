@@ -18,17 +18,17 @@ class SearchController extends Controller
             return response()->json(['orders' => [], 'customers' => [], 'products' => []]);
         }
 
-        $orders = Invoice::with('customer:id,name')
+        $orders = Order::with('customer:id,name')
             ->where(function ($query) use ($q) {
-                $query->where('invoice_number', 'like', "%{$q}%")
+                $query->where('order_number', 'like', "%{$q}%")
                       ->orWhereHas('customer', fn($c) => $c->where('name', 'like', "%{$q}%"));
             })
-            ->orderBy('invoice_date', 'desc')
+            ->orderBy('order_date', 'desc')
             ->limit(5)
-            ->get(['id', 'invoice_number', 'status', 'total', 'customer_id', 'invoice_date'])
+            ->get(['id', 'order_number', 'status', 'total', 'customer_id', 'order_date'])
             ->map(fn($o) => [
                 'id'             => $o->id,
-                'label'          => $o->invoice_number,
+                'label'          => $o->order_number,
                 'sub'            => $o->customer?->name ?? '—',
                 'status'         => $o->status,
                 'total'          => $o->total,

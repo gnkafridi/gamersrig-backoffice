@@ -34,7 +34,7 @@ const EVENT_STYLE = {
 
 // Map auditable_type (short) to route prefix
 const MODEL_ROUTE = {
-  'App\\Models\\Invoice':  '/orders',
+  'App\\Models\\Order':  '/orders',
   'App\\Models\\Product':  '/products',
   'App\\Models\\Customer': '/customers',
 };

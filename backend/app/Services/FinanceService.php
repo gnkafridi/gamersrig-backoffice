@@ -111,18 +111,18 @@ class FinanceService
      * - cod_received      : net revenue of COD records the courier has disbursed.
      * - total_revenue     : advance_collected + cod_received.
      *
-     * Period is matched against invoices.invoice_date (YYYY-MM).
+     * Period is matched against invoices.order_date (YYYY-MM).
      */
     public function revenueBreakdown(?string $period = null): array
     {
-        $advanceQ = Invoice::where('status', 'delivered')
+        $advanceQ = Order::where('status', 'delivered')
             ->where(function ($q) {
                 $q->where('payment_method', '!=', 'COD')->orWhereNull('payment_method');
             });
 
         if ($period) {
             [$year, $month] = array_map('intval', explode('-', $period));
-            $advanceQ->whereYear('invoice_date', $year)->whereMonth('invoice_date', $month);
+            $advanceQ->whereYear('order_date', $year)->whereMonth('order_date', $month);
         }
 
         $advanceCollected = (float) $advanceQ->sum('total');
@@ -131,7 +131,7 @@ class FinanceService
             ->when($period, function ($q) use ($period) {
                 [$year, $month] = array_map('intval', explode('-', $period));
                 $q->whereHas('invoice', fn ($iq) =>
-                    $iq->whereYear('invoice_date', $year)->whereMonth('invoice_date', $month)
+                    $iq->whereYear('order_date', $year)->whereMonth('order_date', $month)
                 );
             })
             ->sum('net_revenue');

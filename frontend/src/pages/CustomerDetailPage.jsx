@@ -157,11 +157,11 @@ export default function CustomerDetailPage() {
                 <TableRow key={order.id} hover sx={{ cursor: 'pointer' }} onClick={() => navigate(`/orders/${order.id}`)}>
                   <TableCell>
                     <Typography variant="body2" fontWeight={700} color="primary.main">
-                      {order.invoice_number}
+                      {order.order_number}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption">{dayjs(order.invoice_date).format('DD MMM YYYY')}</Typography>
+                    <Typography variant="caption">{dayjs(order.order_date).format('DD MMM YYYY')}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">{order.notes || '—'}</Typography>

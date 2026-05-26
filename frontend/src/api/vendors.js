@@ -11,6 +11,7 @@ export const getCommissionReport = ()       => client.get('/vendors/meta/commiss
 
 // ── Vendor (partner) products ────────────────────────────
 export const getVendorProducts    = (params) => client.get('/vendor-products', { params });
+export const getVendorProduct     = (id)     => client.get(`/vendor-products/${id}`);
 export const createVendorProduct  = (data)   => client.post('/vendor-products', data);
 export const updateVendorProduct  = (id, data) => client.put(`/vendor-products/${id}`, data);
 export const deleteVendorProduct  = (id)     => client.delete(`/vendor-products/${id}`);

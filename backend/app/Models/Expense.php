@@ -26,8 +26,8 @@ class Expense extends Model
         return $this->belongsTo(Partner::class);
     }
 
-    public function invoice()
+    public function order()
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Order::class, 'invoice_id');
     }
 }

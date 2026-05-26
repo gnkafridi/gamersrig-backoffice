@@ -22,6 +22,7 @@ import StockSpentPage from './pages/StockSpentPage';
 import StockSpentFormPage from './pages/StockSpentFormPage';
 import SalesAnalyticsPage from './pages/SalesAnalyticsPage';
 import PartnerProductsPage from './pages/PartnerProductsPage';
+import VendorProductDetailPage from './pages/VendorProductDetailPage';
 import UsersPage from './pages/UsersPage';
 import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
@@ -64,6 +65,7 @@ function AppRoutes() {
           <Route path="stock-spent/new" element={<StockSpentFormPage />} />
           <Route path="stock-spent/:id/edit" element={<StockSpentFormPage />} />
           <Route path="partner-products" element={<PartnerProductsPage />} />
+          <Route path="partner-products/:id" element={<VendorProductDetailPage />} />
           <Route path="users"    element={<RoleRoute roles={['super_admin','admin']}><UsersPage /></RoleRoute>} />
           <Route path="history"  element={<RoleRoute roles={['super_admin','admin']}><HistoryPage /></RoleRoute>} />
           <Route path="profile"         element={<ProfilePage />} />
