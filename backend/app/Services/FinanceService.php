@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\CodRecord;
 use App\Models\Expense;
-use App\Models\Invoice;
+use App\Models\Order;
 use App\Models\MonthlyInvestment;
 use App\Models\Partner;
 use App\Models\PartnerInvestment;
