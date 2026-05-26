@@ -93,7 +93,7 @@ class AnalyticsController extends Controller
     {
         $period = $request->period ?? 'all'; // this_month, this_year, all
 
-        $query = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+        $query = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', self::SALE_STATUSES)
             ->select(
                 'order_items.product_name',
@@ -105,10 +105,10 @@ class AnalyticsController extends Controller
             ->groupBy('order_items.product_name', 'order_items.product_id');
 
         if ($period === 'this_month') {
-            $query->whereYear('invoices.order_date', now()->year)
-                  ->whereMonth('invoices.order_date', now()->month);
+            $query->whereYear('orders.order_date', now()->year)
+                  ->whereMonth('orders.order_date', now()->month);
         } elseif ($period === 'this_year') {
-            $query->whereYear('invoices.order_date', now()->year);
+            $query->whereYear('orders.order_date', now()->year);
         }
 
         $products = $query->orderByDesc('total_revenue')->limit(10)->get();
@@ -149,9 +149,9 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+        $rows = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.order_date', [$from, $to])
+            ->whereBetween('orders.order_date', [$from, $to])
             ->whereNotNull('order_items.category')
             ->where('order_items.category', '!=', '')
             ->select(
@@ -182,9 +182,9 @@ class AnalyticsController extends Controller
         $sort  = in_array($request->sort, ['revenue', 'units_sold', 'profit', 'margin']) ? $request->sort : 'revenue';
         $order = $request->order === 'asc' ? 'asc' : 'desc';
 
-        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+        $rows = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.order_date', [$from, $to])
+            ->whereBetween('orders.order_date', [$from, $to])
             ->select(
                 'order_items.product_id',
                 'order_items.product_name',
@@ -299,10 +299,10 @@ class AnalyticsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
-        $rows = OrderItem::join('invoices', 'order_items.invoice_id', '=', 'orders.id')
+        $rows = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->leftJoin('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', self::SALE_STATUSES)
-            ->whereBetween('invoices.order_date', [$from, $to])
+            ->whereBetween('orders.order_date', [$from, $to])
             ->select(
                 DB::raw("COALESCE(NULLIF(products.brand, ''), 'Unbranded') as brand"),
                 DB::raw('SUM(order_items.quantity) as units_sold'),
