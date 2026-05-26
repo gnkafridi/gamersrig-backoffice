@@ -98,6 +98,7 @@ class AnalyticsController extends Controller
             ->select(
                 'order_items.product_name',
                 'order_items.product_id',
+                DB::raw('COUNT(DISTINCT orders.id) as order_count'),
                 DB::raw('SUM(order_items.quantity) as total_quantity'),
                 DB::raw('SUM(order_items.total) as total_revenue'),
                 DB::raw('SUM(order_items.total - (order_items.cost_price * order_items.quantity)) as total_profit')
@@ -111,7 +112,7 @@ class AnalyticsController extends Controller
             $query->whereYear('orders.order_date', now()->year);
         }
 
-        $products = $query->orderByDesc('total_revenue')->limit(10)->get();
+        $products = $query->orderByDesc('order_count')->orderByDesc('total_revenue')->limit(10)->get();
 
         return response()->json($products);
     }
