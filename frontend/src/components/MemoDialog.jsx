@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  CheckCircleOutline as CheckCircleOutlineIcon,
+  CheckCircleOutlined as CheckCircleOutlineIcon,
   StickyNote2Outlined as StickyNote2OutlinedIcon,
 } from '@mui/icons-material';
 import { getMemo, updateMemo } from '../api/memo';
